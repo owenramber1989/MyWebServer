@@ -97,15 +97,16 @@ void *request_handler(void *arg) {
     return 0;
 }
 void send_data(FILE *fp, char *ct, char *file_name) {
-    char protocol[] = "HTTP/1.0 200 OK\r\n";
-    char server[] = "Server:Linux Web Server \r\n";
-    char cnt_len[] = "Content-length:2048\r\n";
+    char protocol[] = "HTTP/1.1 200 OK\r\n";
+    char server[] = "Server:Linux Web Server\r\n";
+    // char cnt_len[] = "Content-Length:8192\r\n";
     char cnt_type[SMALL_BUF];
     char buf[BUF_SIZE];
     FILE *send_file;
+    size_t read_len;
 
-    sprintf(cnt_type, "Content-type:%s\r\n\r\n", ct);
-    send_file = fopen(file_name, "r");
+    sprintf(cnt_type, "Content-Type:%s\r\n\r\n", ct);
+    send_file = fopen(file_name, "rb");
     if (send_file == NULL) {
         send_error(fp);
         return;
@@ -114,15 +115,14 @@ void send_data(FILE *fp, char *ct, char *file_name) {
     // 传输头信息
     fputs(protocol, fp);
     fputs(server, fp);
-    fputs(cnt_len, fp);
+    // fputs(cnt_len, fp);
     fputs(cnt_type, fp);
 
     // 传输请求数据
-    while (fgets(buf, BUF_SIZE, send_file) != NULL) {
-        fputs(buf, fp);
+    while ((read_len = fread(buf, 1, BUF_SIZE, send_file)) > 0) {
+        fwrite(buf, 1, read_len, fp);
         fflush(fp);
     }
-    fflush(fp);
     fclose(fp);
 }
 char *content_type(char *file) {
@@ -134,8 +134,10 @@ char *content_type(char *file) {
 
     if (!strcmp(extension, "html") || !strcmp(extension, "htm"))
         return "text/html";
+    else if (!strcmp(extension, "png"))
+        return "image/png";
     else
-        return "text/plain";
+        return "text/plain"; // 默认类型，您可以根据需要修改
 }
 void send_error(FILE *fp) {
     char protocol[] = "HTTP/1.0 400 Bad Request\r\n";
