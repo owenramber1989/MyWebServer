@@ -16,7 +16,7 @@ void send_error(FILE *fp, int status_code);
 void error_handling(char *message);
 
 int main(int argc, char *argv[]) {
-    int serv_sock, clnt_sock;
+    int serv_sock;
     struct sockaddr_in serv_adr, clnt_adr;
     socklen_t clnt_adr_size;
     char buf[BUF_SIZE];
@@ -56,11 +56,11 @@ int main(int argc, char *argv[]) {
 
     while (1) {
         clnt_adr_size = sizeof(clnt_adr);
-        clnt_sock =
-            accept(serv_sock, (struct sockaddr *)&clnt_adr, &clnt_adr_size);
-        printf("Connection Request : %s:%d ", inet_ntoa(clnt_adr.sin_addr),
+        int *clnt_sock = malloc(sizeof(int));
+            *clnt_sock = accept(serv_sock, (struct sockaddr *)&clnt_adr, &clnt_adr_size);
+        printf("Connection Request : \n    {   \n      Addr: %s\n      Port: %d\n    }\n", inet_ntoa(clnt_adr.sin_addr),
                ntohs(clnt_adr.sin_port));
-        pthread_create(&t_id, NULL, request_handler, &clnt_sock);
+        pthread_create(&t_id, NULL, request_handler, clnt_sock);
         pthread_detach(t_id);
     }
     close(serv_sock);
@@ -80,16 +80,18 @@ void *request_handler(void *arg) {
     clnt_read = fdopen(clnt_sock, "r");
     clnt_write = fdopen(dup(clnt_sock), "w");
     fgets(req_line, SMALL_BUF, clnt_read);
-    printf("%s\n", req_line);
+    printf("    CMD: %s", req_line);
     if (strstr(req_line, "HTTP/") == NULL) {
+        printf("    RESULT: 400 BAD REQUEST\n");
         send_error(clnt_write, 400);
         fclose(clnt_read);
         fclose(clnt_write);
         return 0;
     }
-    strcpy(method, strtok(req_line, " /"));
-    strcpy(file_name, strtok(NULL, " /"));
+    sscanf(req_line, "%[^ ] %[^ ]", method, file_name);
+    memmove(file_name,file_name+1,strlen(file_name));
     if (access(file_name, F_OK) == -1) {
+        printf("    RESULT: 404 FILE NOT FOUND\n");
         send_error(clnt_write, 404); // Not Found
         fclose(clnt_read);
         fclose(clnt_write);
@@ -97,6 +99,7 @@ void *request_handler(void *arg) {
     }
     strcpy(ct, content_type(file_name));
     if (strcmp(method, "GET") != 0) {
+        printf("    RESULT: 400 BAD REQUEST\n");
         send_error(clnt_write, 400);
         fclose(clnt_read);
         fclose(clnt_write);
@@ -104,6 +107,8 @@ void *request_handler(void *arg) {
     }
     fclose(clnt_read);
     send_data(clnt_write, ct, file_name);
+    printf("    RESULT: 200 OK\n");
+    free(arg);
     return 0;
 }
 void send_data(FILE *fp, char *ct, char *file_name) {
