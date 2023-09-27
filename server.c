@@ -12,7 +12,7 @@
 void *request_handler(void *arg);
 void send_data(FILE *fp, char *ct, char *file_name);
 char *content_type(char *file);
-void send_error(FILE *fp);
+void send_error(FILE *fp, int status_code);
 void error_handling(char *message);
 
 int main(int argc, char *argv[]) {
@@ -82,16 +82,22 @@ void *request_handler(void *arg) {
     fgets(req_line, SMALL_BUF, clnt_read);
     printf("%s\n", req_line);
     if (strstr(req_line, "HTTP/") == NULL) {
-        send_error(clnt_write);
+        send_error(clnt_write, 400);
         fclose(clnt_read);
         fclose(clnt_write);
         return 0;
     }
     strcpy(method, strtok(req_line, " /"));
     strcpy(file_name, strtok(NULL, " /"));
+    if (access(file_name, F_OK) == -1) {
+        send_error(clnt_write, 404); // Not Found
+        fclose(clnt_read);
+        fclose(clnt_write);
+        return 0;
+    }
     strcpy(ct, content_type(file_name));
     if (strcmp(method, "GET") != 0) {
-        send_error(clnt_write);
+        send_error(clnt_write, 400);
         fclose(clnt_read);
         fclose(clnt_write);
         return 0;
@@ -112,7 +118,7 @@ void send_data(FILE *fp, char *ct, char *file_name) {
     sprintf(cnt_type, "Content-Type:%s\r\n\r\n", ct);
     send_file = fopen(file_name, "rb");
     if (send_file == NULL) {
-        send_error(fp);
+        send_error(fp, 404);
         return;
     }
 
@@ -132,9 +138,19 @@ void send_data(FILE *fp, char *ct, char *file_name) {
 char *content_type(char *file) {
     char extension[SMALL_BUF];
     char file_name[SMALL_BUF];
+    char* ext;
     strcpy(file_name, file);
-    strtok(file_name, ".");
-    strcpy(extension, strtok(NULL, "."));
+    char *token = strtok(file_name, ".");
+if (token != NULL) {
+    token = strtok(NULL, ".");
+    if (token != NULL) {
+        strcpy(extension, token);
+    } else {
+        strcpy(extension, "");
+    }
+} else {
+    strcpy(extension, "");
+}
 
     if (!strcmp(extension, "html") || !strcmp(extension, "htm"))
         return "text/html";
@@ -145,19 +161,35 @@ char *content_type(char *file) {
     else
         return "text/plain"; // 默认类型，您可以根据需要修改
 }
-void send_error(FILE *fp) {
-    char protocol[] = "HTTP/1.0 400 Bad Request\r\n";
-    char server[] = "Server:Linux Web Server \r\n";
+void send_error(FILE *fp, int status_code) {
+    char protocol[50];
+    char content[100];
+
+    switch(status_code) {
+        case 400:
+            strcpy(protocol, "HTTP/1.1 400 Bad Request\r\n");
+            strcpy(content, "<html><body>400 Bad Request</body></html>");
+            break;
+        case 404:
+            strcpy(protocol, "HTTP/1.1 404 Not Found\r\n");
+            strcpy(content, "<html><body>404 Not Found</body></html>");
+            break;
+        // 添加其他状态码处理逻辑
+        default:
+            strcpy(protocol, "HTTP/1.1 500 Internal Server Error\r\n");
+            strcpy(content, "<html><body>500 Internal Server Error</body></html>");
+            break;
+    }
+
+    char server[] = "Server:Linux Web Server\r\n";
     char cnt_len[] = "Content-length:2048\r\n";
     char cnt_type[] = "Content-type:text/html\r\n\r\n";
-    char content[] =
-        "<html><head><title>NETWORK</title></head>"
-        "<body><font size=+5><br>发生错误！ 查看请求文件名和请求方式!"
-        "</font></body></html>";
+
     fputs(protocol, fp);
     fputs(server, fp);
     fputs(cnt_len, fp);
     fputs(cnt_type, fp);
+    fputs(content, fp);
     fflush(fp);
 }
 void error_handling(char *message) {
