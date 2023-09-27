@@ -18,7 +18,7 @@ void error_handling(char *message);
 int main(int argc, char *argv[]) {
     int serv_sock, clnt_sock;
     struct sockaddr_in serv_adr, clnt_adr;
-    int clnt_adr_size;
+    socklen_t clnt_adr_size;
     char buf[BUF_SIZE];
     pthread_t t_id;
     const char *listen_ip = "127.0.0.1"; // 默认监听地址
@@ -94,6 +94,7 @@ void *request_handler(void *arg) {
     }
     fclose(clnt_read);
     send_data(clnt_write, ct, file_name);
+    return 0;
 }
 void send_data(FILE *fp, char *ct, char *file_name) {
     char protocol[] = "HTTP/1.0 200 OK\r\n";
