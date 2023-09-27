@@ -16,6 +16,14 @@ void send_error(FILE *fp, int status_code);
 void error_handling(char *message);
 
 int main(int argc, char *argv[]) {
+    if (argc < 2 || argc > 7) {
+        printf("Usage : %s | -a/A <addr> | -p/P <port> | -d/D <dir> |\n", argv[0]);
+        exit(1);
+    }
+    if (strcmp(argv[1],"-h")==0) {
+        printf("Usage : %s | -a/A <addr> | -p/P <port> | -d/D <dir> |\n", argv[0]);
+        return 0;
+    }
     int serv_sock;
     struct sockaddr_in serv_adr, clnt_adr;
     socklen_t clnt_adr_size;
@@ -24,10 +32,6 @@ int main(int argc, char *argv[]) {
     const char *listen_ip = "127.0.0.1"; // 默认监听地址
     int port = 8080;                     // 默认监听端口
     const char *document_root = ".";     // 默认主目录
-    if (argc < 2 || argc > 7) {
-        printf("Usage : %s | -a/A <addr> | -p/P <port> | -d/D <dir> |\n", argv[0]);
-        exit(1);
-    }
     for (int i = 1; i < argc; i++){
         if (!strcmp(argv[i],"-a") || !strcmp(argv[i],"-A") ){
             i++;
@@ -163,6 +167,8 @@ if (token != NULL) {
         return "image/png";
     else if (!strcmp(extension, "mp4"))
         return "video/mp4";
+    else if (!strcmp(extension, "mp3")) 
+        return "audio/mpeg";
     else
         return "text/plain"; // 默认类型，您可以根据需要修改
 }
