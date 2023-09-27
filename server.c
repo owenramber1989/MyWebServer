@@ -136,6 +136,8 @@ char *content_type(char *file) {
         return "text/html";
     else if (!strcmp(extension, "png"))
         return "image/png";
+    else if (!strcmp(extension, "mp4"))
+        return "video/mp4";
     else
         return "text/plain"; // 默认类型，您可以根据需要修改
 }
