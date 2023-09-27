@@ -24,21 +24,24 @@ int main(int argc, char *argv[]) {
     const char *listen_ip = "127.0.0.1"; // 默认监听地址
     int port = 8080;                     // 默认监听端口
     const char *document_root = ".";     // 默认主目录
-    if (argc < 2) {
-        printf("Usage : %s <port>\n", argv[0]);
+    if (argc < 2 || argc > 7) {
+        printf("Usage : %s | -a/A <addr> | -p/P <port> | -d/D <dir> |\n", argv[0]);
         exit(1);
     }
-    if (argc >= 2) {
-        listen_ip = argv[1];
-    }
-    if (argc >= 3) {
-        port = atoi(argv[2]);
-    }
-    if (argc >= 4) {
-        document_root = argv[3];
+    for (int i = 1; i < argc; i++){
+        if (!strcmp(argv[i],"-a") || !strcmp(argv[i],"-A") ){
+            i++;
+            listen_ip = argv[i];
+        } else if (!strcmp(argv[i],"-p") || !strcmp(argv[i],"-P")) {
+            i++;
+            port = atoi(argv[i]);
+        } else if (!strcmp(argv[i],"-d") || !strcmp(argv[i],"-D") ) {
+            i++;
+            document_root = argv[i];
         if (chdir(document_root) != 0) {
             perror("chdir");
             exit(EXIT_FAILURE);
+        }
         }
     }
     serv_sock = socket(PF_INET, SOCK_STREAM, 0);
@@ -55,7 +58,7 @@ int main(int argc, char *argv[]) {
         clnt_adr_size = sizeof(clnt_adr);
         clnt_sock =
             accept(serv_sock, (struct sockaddr *)&clnt_adr, &clnt_adr_size);
-        printf("Connection Request : %s:%d\n", inet_ntoa(clnt_adr.sin_addr),
+        printf("Connection Request : %s:%d ", inet_ntoa(clnt_adr.sin_addr),
                ntohs(clnt_adr.sin_port));
         pthread_create(&t_id, NULL, request_handler, &clnt_sock);
         pthread_detach(t_id);
@@ -77,6 +80,7 @@ void *request_handler(void *arg) {
     clnt_read = fdopen(clnt_sock, "r");
     clnt_write = fdopen(dup(clnt_sock), "w");
     fgets(req_line, SMALL_BUF, clnt_read);
+    printf("%s\n", req_line);
     if (strstr(req_line, "HTTP/") == NULL) {
         send_error(clnt_write);
         fclose(clnt_read);
