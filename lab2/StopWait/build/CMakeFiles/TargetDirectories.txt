@@ -1,0 +1,3 @@
+/home/owenramber1989/MyWebServer/lab2/Ubuntu_18.04.3_64_Desktop/StopWait/build/CMakeFiles/stop_wait.dir
+/home/owenramber1989/MyWebServer/lab2/Ubuntu_18.04.3_64_Desktop/StopWait/build/CMakeFiles/edit_cache.dir
+/home/owenramber1989/MyWebServer/lab2/Ubuntu_18.04.3_64_Desktop/StopWait/build/CMakeFiles/rebuild_cache.dir
